@@ -58,7 +58,7 @@ export default function DashboardPage() {
             
             {/* Main Title */}
             <h1 className="text-[32px] md:text-4xl font-black tracking-tight mb-1">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#133020] via-[#046241] to-[#b45309] dark:from-[#4ade80] dark:via-[#2dd4bf] dark:to-[#ffb347]">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-[#133020] via-[#046241] to-[#b45309] dark:from-[#4ade80] dark:via-[#2dd4bf] dark:to-[#ffb347]">
                 Dashboard Overview
               </span>
             </h1>
