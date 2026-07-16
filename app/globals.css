@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Make Tailwind's `dark:` utilities react to the class controlled by the UI. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-green: #1b5e3a;
   --color-brand-gold: #f2a83b;
