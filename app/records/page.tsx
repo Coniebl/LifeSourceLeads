@@ -1,98 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import * as xlsx from "xlsx";
+import { supabase } from "../../lib/supabase/client";
 import { useDashboardData } from "../../lib/hooks/useDashboardData";
 import { Sidebar } from "../../components/dashboard/Sidebar";
 import { RecordsTable, type RecordData } from "../../components/records/RecordsTable";
 import { CompletedFilesModal } from "../../components/records/CompletedFilesModal";
 import { CustomSelect } from "../../components/ui/CustomSelect";
-
-const initialRecords: RecordData[] = [
-  {
-    id: "rec-1",
-    companyName: "SiamGlobal Export",
-    country: "Thailand",
-    industry: "Trade",
-    contactPerson: "Wanchai Boonsri",
-    email: "wboonsri@siamglobal.th",
-    phone: "+66 82 345 6789",
-    status: "Pending",
-    dateAdded: "2026-06-14",
-    website: "https://siamglobal.example.th",
-    linkedin: "https://linkedin.com/company/siamglobal",
-    sourceFile: "Excel 1"
-  },
-  {
-    id: "rec-2",
-    companyName: "Mekong Trade Co.",
-    country: "Vietnam",
-    industry: "Trade",
-    contactPerson: "Pham Thi Hoa",
-    email: "pthoa@mekongtrade.vn",
-    phone: "+84 914 567 890",
-    status: "Accepted",
-    dateAdded: "2026-05-11",
-    website: "https://mekongtrade.example.vn",
-    linkedin: "https://linkedin.com/company/mekongtrade",
-    sourceFile: "Excel 1"
-  },
-  {
-    id: "rec-3",
-    companyName: "Nusantara Digital",
-    country: "Indonesia",
-    industry: "Technology",
-    contactPerson: "Siti Rahayu",
-    email: "srahayu@nusantara.id",
-    phone: "+62 816 7890 123",
-    status: "Rejected",
-    dateAdded: "2026-04-18",
-    website: "https://nusantara.example.id",
-    linkedin: "https://linkedin.com/company/nusantara",
-    sourceFile: "Excel 2"
-  },
-  {
-    id: "rec-4",
-    companyName: "AquaPure Systems",
-    country: "Vietnam",
-    industry: "Environment",
-    contactPerson: "Le Van Duc",
-    email: "lvduc@aquapure.vn",
-    phone: "+84 913 456 789",
-    status: "Accepted",
-    dateAdded: "2026-03-22",
-    website: "https://aquapure.example.vn",
-    linkedin: "https://linkedin.com/company/aquapure",
-    sourceFile: "Excel 2"
-  },
-  {
-    id: "rec-5",
-    companyName: "Delta Constructions",
-    country: "Indonesia",
-    industry: "Construction",
-    contactPerson: "Eko Prasetyo",
-    email: "eprasetyo@deltacons.id",
-    phone: "+62 813 4567 890",
-    status: "Rejected",
-    dateAdded: "2026-03-15",
-    website: "https://deltacons.example.id",
-    linkedin: "https://linkedin.com/company/deltacons",
-    sourceFile: "Excel 3"
-  },
-  {
-    id: "rec-6",
-    companyName: "Oaktree Manufacturing",
-    country: "Malaysia",
-    industry: "Manufacturing",
-    contactPerson: "Tan Mei Lin",
-    email: "tmlin@oaktree.my",
-    phone: "+60 13 456 7890",
-    status: "Pending",
-    dateAdded: "2026-03-08",
-    website: "https://oaktree.example.my",
-    linkedin: "https://linkedin.com/company/oaktree",
-    sourceFile: "Excel 3"
-  }
-];
 
 export default function RecordsPage() {
   const {
@@ -104,13 +19,92 @@ export default function RecordsPage() {
     handleLogout,
   } = useDashboardData();
 
-  const [records, setRecords] = useState<RecordData[]>(initialRecords);
+  const [records, setRecords] = useState<RecordData[]>([]);
   const [completedFiles, setCompletedFiles] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFile, setSelectedFile] = useState("All Files");
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const availableFiles = Array.from(new Set(records.map((r) => r.sourceFile)));
+  const fetchRecords = async () => {
+    const { data, error } = await supabase.from('records').select('*').order('date_added', { ascending: false });
+    if (data && !error) {
+      const formatted = data.map((r: any) => ({
+        id: r.id,
+        companyName: r.company_name,
+        country: r.country,
+        industry: r.industry,
+        contactPerson: r.contact_person,
+        email: r.email,
+        phone: r.phone,
+        status: r.status || "Pending",
+        dateAdded: new Date(r.date_added).toISOString().split('T')[0],
+        website: r.website || "",
+        linkedin: r.linkedin || "",
+        sourceFile: r.source_file,
+      }));
+      setRecords(formatted);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecords();
+    const handleUpdate = () => fetchRecords();
+    window.addEventListener('companyStatusUpdated', handleUpdate);
+    return () => window.removeEventListener('companyStatusUpdated', handleUpdate);
+  }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = xlsx.read(bstr, { type: "binary" });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = xlsx.utils.sheet_to_json(ws);
+
+        const dbRows = data.map((row: any) => ({
+          company_name: row["Company Name"] || row["company"] || "Unknown Company",
+          country: row["Country"] || row["country"] || "",
+          industry: row["Industry"] || row["industry"] || "",
+          contact_person: row["Contact Person"] || row["contact_person"] || row["Name"] || "",
+          email: row["Email"] || row["email"] || "",
+          phone: String(row["Phone"] || row["phone"] || ""),
+          status: "Pending",
+          website: row["Website"] || row["website"] || "",
+          linkedin: row["LinkedIn"] || row["linkedin"] || "",
+          source_file: file.name
+        }));
+
+        if (dbRows.length > 0) {
+          const { error } = await supabase.from('records').insert(dbRows);
+          if (error) {
+            console.error("Error inserting records:", error);
+            alert("Failed to import records.");
+          } else {
+            fetchRecords();
+          }
+        }
+      } catch (err) {
+        console.error("Failed to parse Excel:", err);
+        alert("Invalid Excel file.");
+      } finally {
+        setIsImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const mergedRecords = records;
+
+  const availableFiles = Array.from(new Set(mergedRecords.map((r) => r.sourceFile)));
 
   const formattedDate = () => {
     return new Date().toLocaleDateString("en-US", {
@@ -122,7 +116,7 @@ export default function RecordsPage() {
   };
 
   // Filter records based on search query, selected file, and NOT being from a completed file
-  const filteredRecords = records.filter((r) => {
+  const filteredRecords = mergedRecords.filter((r) => {
     const isCompleted = completedFiles.includes(r.sourceFile);
     if (isCompleted) return false;
 
@@ -137,6 +131,13 @@ export default function RecordsPage() {
     return matchesSearch && matchesFile;
   });
 
+  const statusOrder: Record<string, number> = { "Pending": 1, "Accepted": 2, "Rejected": 3 };
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    const orderA = a.status ? statusOrder[a.status] : 4;
+    const orderB = b.status ? statusOrder[b.status] : 4;
+    return orderA - orderB;
+  });
+
   const handleMarkAsComplete = () => {
     if (selectedFile !== "All Files" && !completedFiles.includes(selectedFile)) {
       setCompletedFiles([...completedFiles, selectedFile]);
@@ -147,9 +148,15 @@ export default function RecordsPage() {
     }
   };
 
-  const handleDeleteCompletedFiles = (filesToDelete: string[]) => {
-    setCompletedFiles(completedFiles.filter(f => !filesToDelete.includes(f)));
-    setRecords(records.filter(r => !filesToDelete.includes(r.sourceFile)));
+  const handleDeleteCompletedFiles = async (filesToDelete: string[]) => {
+    const { error } = await supabase.from('records').delete().in('source_file', filesToDelete);
+    if (!error) {
+      setCompletedFiles(completedFiles.filter(f => !filesToDelete.includes(f)));
+      fetchRecords();
+    } else {
+      console.error("Failed to delete files from database:", error.message);
+      alert("Failed to delete records from the database.");
+    }
     setIsModalOpen(false);
   };
 
@@ -199,12 +206,24 @@ export default function RecordsPage() {
 
           <div className="flex flex-wrap items-center gap-3 mt-2 md:mt-0">
 
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
             {/* Import Excel button */}
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-[#046241] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#046241]/20 hover:scale-105 transition-transform">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#046241] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#046241]/20 hover:scale-105 transition-transform disabled:opacity-50"
+            >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              Import Excel
+              {isImporting ? "Importing..." : "Import Excel"}
             </button>
           </div>
         </div>
@@ -290,7 +309,7 @@ export default function RecordsPage() {
         </div>
 
         {/* Data Table */}
-        <RecordsTable records={filteredRecords} />
+        <RecordsTable records={sortedRecords} />
 
       </div>
 

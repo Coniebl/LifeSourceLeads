@@ -95,7 +95,7 @@ export default function DashboardPage() {
             
             {/* Left side: Line chart */}
             <div className="w-full lg:w-[60%] xl:w-[65%] min-h-[350px]">
-              <MonthlyOffersChart selectedFile={selectedFile} />
+              <MonthlyOffersChart selectedFile={selectedFile} hasData={stats.totalLeads > 0} />
             </div>
 
             {/* Right side: Summary Cards and Portfolio Status */}

@@ -25,16 +25,13 @@ export function getStoredUser(): DashboardUser | null {
 export function useDashboardData() {
   const router = useRouter();
   const [user] = useState<DashboardUser | null>(getStoredUser);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState("Dashboard");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("lifelead-theme");
-    if (saved === "dark") {
-      setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("lifelead-theme") === "dark";
     }
-  }, []);
+    return false;
+  });
+  const [activeTab, setActiveTab] = useState("Dashboard");
 
   useEffect(() => {
     if (isDarkMode) {
@@ -71,52 +68,48 @@ export function useDashboardData() {
 
     const fetchSupabaseData = async () => {
       try {
-        const [contactsResult, industriesResult] = await Promise.all([
-          supabase.from("company_contacts").select("company_name, country"),
-          supabase.from("company_industries").select("company_name, original_industry_input, general_industry_type, subcategory"),
-        ]);
+        const { data, error } = await supabase.from("records").select("company_name, country, industry, status");
 
-        if (contactsResult.error || industriesResult.error) {
-          console.warn(
-            "Supabase error loading data:",
-            contactsResult.error?.message || industriesResult.error?.message
-          );
+        if (error) {
+          console.warn("Supabase error loading data:", error.message);
           return;
         }
 
-        const contacts = contactsResult.data ?? [];
-        const industries = industriesResult.data ?? [];
+        const records = data ?? [];
         const companies = new Map<string, { country: string; industries: Set<string>; leads: number }>();
+        
+        let pendingCount = 0;
+        let acceptedCount = 0;
+        let rejectedCount = 0;
 
-        const getCompany = (companyName: string) => {
-          const name = companyName.trim();
+        records.forEach((record) => {
+          if (!record.company_name?.trim()) return;
+          const name = record.company_name.trim();
+
           if (!companies.has(name)) {
-            companies.set(name, { country: "Unknown", industries: new Set<string>(), leads: 0 });
+            companies.set(name, { 
+              country: record.country?.trim() || "Unknown", 
+              industries: new Set<string>(), 
+              leads: 0 
+            });
           }
-          return companies.get(name)!;
-        };
 
-        contacts.forEach((contact) => {
-          if (!contact.company_name?.trim()) return;
-          const company = getCompany(contact.company_name);
+          const company = companies.get(name)!;
           company.leads += 1;
-          if (contact.country?.trim()) company.country = contact.country.trim();
-        });
 
-        industries.forEach((industryRow) => {
-          if (!industryRow.company_name?.trim()) return;
-          const company = getCompany(industryRow.company_name);
-          const industry =
-            industryRow.general_industry_type?.trim() ||
-            industryRow.subcategory?.trim() ||
-            industryRow.original_industry_input?.trim();
-          if (industry) company.industries.add(industry);
+          if (record.industry?.trim()) {
+            company.industries.add(record.industry.trim());
+          }
+
+          if (record.status === "Pending") pendingCount++;
+          else if (record.status === "Accepted") acceptedCount++;
+          else if (record.status === "Rejected") rejectedCount++;
         });
 
         if (companies.size === 0) return;
 
         const total = companies.size;
-        const leadsSum = contacts.length;
+        const leadsSum = records.length;
         const uniqueCountries = new Set<string>();
         const uniqueIndustries = new Set<string>();
 
@@ -139,13 +132,13 @@ export function useDashboardData() {
 
         setStats({
           totalCompanies: total,
-          acceptedCount: 0,
-          pendingCount: 0,
-          rejectedCount: 0,
+          acceptedCount,
+          pendingCount,
+          rejectedCount,
           totalLeads: leadsSum,
           totalCountries: uniqueCountries.size,
           totalIndustries: uniqueIndustries.size,
-          acceptedOfferCount: 0,
+          acceptedOfferCount: acceptedCount, // Using accepted records as accepted offer count
         });
 
         const colors = [

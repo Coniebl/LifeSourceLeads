@@ -40,7 +40,7 @@ export function CountryChart({ countriesData }: CountryChartProps) {
           </svg>
           <span className="font-semibold text-[13px]">No database record found</span>
           <p className="text-xs text-gray-400 text-center max-w-[280px]">
-            Add rows to <code className="bg-gray-100 dark:bg-white/5 px-1 py-0.5 rounded text-red-500 font-mono text-[10px]">company_contacts</code> and <code className="bg-gray-100 dark:bg-white/5 px-1 py-0.5 rounded text-red-500 font-mono text-[10px]">company_industries</code> in Supabase to populate.
+            Add rows to <code className="bg-gray-100 dark:bg-white/5 px-1 py-0.5 rounded text-red-500 font-mono text-[10px]">records</code> in Supabase, or import an Excel file to populate.
           </p>
         </div>
       ) : (

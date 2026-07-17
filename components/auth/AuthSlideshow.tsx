@@ -49,11 +49,11 @@ export function AuthSlideshow() {
             className="w-full h-full object-cover"
           />
           {/* Dark gradient overlay for modern aesthetic & readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
           
-          {/* Text Overlay Card */}
-          <div className="absolute bottom-16 left-12 right-12 bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white/20 transition-all duration-500">
-            <h2 className="text-2xl lg:text-3xl font-extrabold text-[#133020] leading-tight tracking-tight">
+          {/* Minimal Text Overlay */}
+          <div className="absolute bottom-20 left-12 right-12 transition-all duration-500">
+            <h2 className="text-xl lg:text-2xl font-medium text-white/90 leading-snug tracking-wide drop-shadow-lg">
               {slide.title}
             </h2>
           </div>

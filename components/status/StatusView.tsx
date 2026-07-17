@@ -72,7 +72,7 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
 
     Object.keys(groupedData).forEach(sourceName => {
       const companiesInSource = groupedData[sourceName];
-      
+
       const exportData = companiesInSource.map(c => ({
         "Company Name": c.name,
         "Contact Person": c.contactPerson || "Not Provided",
@@ -87,10 +87,10 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
 
       const ws = xlsx.utils.json_to_sheet(exportData);
       const safeSheetName = sourceName.replace(/[\\/*?:[\]]/g, "").substring(0, 31);
-      
+
       xlsx.utils.book_append_sheet(wb, ws, safeSheetName);
     });
-    
+
     if (Object.keys(groupedData).length === 0) {
       const ws = xlsx.utils.json_to_sheet([{ Message: "No records found matching filters." }]);
       xlsx.utils.book_append_sheet(wb, ws, "Empty");
@@ -101,7 +101,7 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
 
   return (
     <div className="flex flex-col h-full space-y-6">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -114,9 +114,9 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
             Applicant overview · {totalCount} of {companies.length} companies
           </p>
         </div>
-        
+
         {/* Export Data Button */}
-        <button 
+        <button
           onClick={handleExport}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#ffb347] hover:bg-[#ffa726] text-[#133020] font-bold rounded-xl shadow-md shadow-[#ffb347]/20 transition-all hover:scale-105 active:scale-95 self-start md:self-auto"
         >
@@ -143,14 +143,19 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
       </div>
 
       {/* Filters (Excel -> Industry -> Country) */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-3 bg-white dark:bg-[#14120e] p-3 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm">
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">Filters</span>
-        
+      <div className="flex flex-col md:flex-row items-center justify-start gap-3 w-full">
+        <div className="flex items-center gap-2 mr-2">
+          <svg className="w-4 h-4 text-[#046241]/60 dark:text-gray-400" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          <span className="text-[11px] font-bold text-[#046241]/60 dark:text-gray-400 uppercase tracking-widest">Filters</span>
+        </div>
+
         <SelectDropdown
           value={selectedSource}
           onChange={setSelectedSource}
           options={allSources.map(s => ({ label: String(s), value: String(s) }))}
-          className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-100 dark:border-white/5 hover:border-[#ffb347] dark:hover:border-[#ffb347] transition-all bg-white dark:bg-[#1c2419] text-[#133020] dark:text-white min-w-[160px]"
+          className="flex items-center justify-between gap-2 px-4 py-2 rounded-full text-sm font-bold border border-[#046241]/20 dark:border-white/10 hover:border-[#046241]/50 dark:hover:border-white/30 hover:bg-[#046241]/5 dark:hover:bg-white/5 transition-all bg-white dark:bg-[#14120e] text-[#133020] dark:text-gray-200 min-w-[160px] shadow-sm"
           dropdownClassName="absolute top-full left-0 mt-2 w-full bg-white dark:bg-[#14120e] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 z-50 overflow-hidden"
           optionClassName="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
           activeOptionClassName="w-full text-left px-4 py-2.5 text-sm font-bold bg-[#046241]/5 dark:bg-[#ffb347]/10 text-[#046241] dark:text-[#ffb347]"
@@ -160,7 +165,7 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
           value={selectedIndustry}
           onChange={setSelectedIndustry}
           options={allIndustries.map(i => ({ label: String(i), value: String(i) }))}
-          className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-100 dark:border-white/5 hover:border-[#ffb347] dark:hover:border-[#ffb347] transition-all bg-white dark:bg-[#1c2419] text-[#133020] dark:text-white min-w-[160px]"
+          className="flex items-center justify-between gap-2 px-4 py-2 rounded-full text-sm font-bold border border-[#046241]/20 dark:border-white/10 hover:border-[#046241]/50 dark:hover:border-white/30 hover:bg-[#046241]/5 dark:hover:bg-white/5 transition-all bg-white dark:bg-[#14120e] text-[#133020] dark:text-gray-200 min-w-[160px] shadow-sm"
           dropdownClassName="absolute top-full left-0 mt-2 w-full bg-white dark:bg-[#14120e] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 z-50 overflow-hidden"
           optionClassName="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
           activeOptionClassName="w-full text-left px-4 py-2.5 text-sm font-bold bg-[#046241]/5 dark:bg-[#ffb347]/10 text-[#046241] dark:text-[#ffb347]"
@@ -170,7 +175,7 @@ export function StatusView({ companies }: { companies: CompanyData[] }) {
           value={selectedCountry}
           onChange={setSelectedCountry}
           options={allCountries.map(c => ({ label: String(c), value: String(c) }))}
-          className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 border-gray-100 dark:border-white/5 hover:border-[#ffb347] dark:hover:border-[#ffb347] transition-all bg-white dark:bg-[#1c2419] text-[#133020] dark:text-white min-w-[160px]"
+          className="flex items-center justify-between gap-2 px-4 py-2 rounded-full text-sm font-bold border border-[#046241]/20 dark:border-white/10 hover:border-[#046241]/50 dark:hover:border-white/30 hover:bg-[#046241]/5 dark:hover:bg-white/5 transition-all bg-white dark:bg-[#14120e] text-[#133020] dark:text-gray-200 min-w-[160px] shadow-sm"
           dropdownClassName="absolute top-full right-0 mt-2 w-[200px] bg-white dark:bg-[#14120e] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 z-50 overflow-hidden"
           optionClassName="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
           activeOptionClassName="w-full text-left px-4 py-2.5 text-sm font-bold bg-[#046241]/5 dark:bg-[#ffb347]/10 text-[#046241] dark:text-[#ffb347]"

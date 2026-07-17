@@ -25,6 +25,7 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 100);
@@ -115,15 +116,20 @@ export function Sidebar({
             return (
               <button
                 key={item.name}
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   if (item.name === "Companies" && pathname !== "/companies") {
-                    router.push("/companies");
+                    setIsNavigating(true);
+                    setTimeout(() => { router.push("/companies"); setTimeout(() => setIsNavigating(false), 500); }, 300);
                   } else if (item.name === "Dashboard" && pathname !== "/dashboard") {
-                    router.push("/dashboard");
+                    setIsNavigating(true);
+                    setTimeout(() => { router.push("/dashboard"); setTimeout(() => setIsNavigating(false), 500); }, 300);
                   } else if (item.name === "Status" && pathname !== "/status") {
-                    router.push("/status");
+                    setIsNavigating(true);
+                    setTimeout(() => { router.push("/status"); setTimeout(() => setIsNavigating(false), 500); }, 300);
                   } else if (item.name === "Records" && pathname !== "/records") {
-                    router.push("/records");
+                    setIsNavigating(true);
+                    setTimeout(() => { router.push("/records"); setTimeout(() => setIsNavigating(false), 500); }, 300);
                   } else {
                     setActiveTab(item.name);
                   }
@@ -140,13 +146,11 @@ export function Sidebar({
                     {item.label}
                   </span>
                 </div>
-                {/* Gold Circle for active item, arrow for rest */}
+                {/* Gold Circle for active item, no arrow for rest */}
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   {isActive ? (
                     <span className="w-2.5 h-2.5 rounded-full bg-[#ffb347] inline-block" />
-                  ) : (
-                    <span className="text-[10px] text-gray-300 group-hover/btn:text-[#046241] dark:group-hover/btn:text-white">▶</span>
-                  )}
+                  ) : null}
                 </div>
               </button>
             );
@@ -207,6 +211,25 @@ export function Sidebar({
           </div>
         </div>
       </div>
+
+      {/* Global Page Transition Loader */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#f5eedb]/90 dark:bg-[#0d0b09]/90 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in zoom-in-95">
+          <div className="flex flex-col items-center">
+             {/* Gradient Line */}
+             <div className="w-64 h-px bg-gradient-to-r from-transparent via-gray-900 dark:via-white to-transparent mb-4 opacity-50 shadow-[0_0_8px_rgba(0,0,0,0.5)]"></div>
+             {/* Dots & Text */}
+             <div className="flex items-center gap-3">
+               <div className="flex gap-1.5">
+                 <span className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                 <span className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                 <span className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
+               </div>
+               <span className="text-xs font-black text-gray-500 dark:text-gray-400 tracking-widest uppercase">Initializing System</span>
+             </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

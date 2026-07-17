@@ -2,12 +2,14 @@ import React from "react";
 
 interface MonthlyOffersChartProps {
   selectedFile: string;
+  hasData?: boolean;
 }
 
-export function MonthlyOffersChart({ selectedFile }: MonthlyOffersChartProps) {
+export function MonthlyOffersChart({ selectedFile, hasData = true }: MonthlyOffersChartProps) {
   // Mock data for the 12 months (0-100 scale for simplicity)
   // Dynamic behavior based on selectedFile (just slightly varying points for demonstration)
   const getPoints = () => {
+    if (!hasData) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     switch (selectedFile) {
       case "Excel 1": return [20, 30, 25, 40, 35, 50, 45, 60, 55, 65, 70, 45];
       case "Excel 2": return [15, 20, 35, 30, 50, 40, 60, 50, 70, 60, 80, 55];
