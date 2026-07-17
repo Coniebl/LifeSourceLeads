@@ -1,4 +1,7 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { LogoIcon } from "../ui/LogoIcon";
 import type { DashboardUser } from "../../lib/hooks/useDashboardData";
 
@@ -19,6 +22,15 @@ export function Sidebar({
   setActiveTab,
   handleLogout,
 }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const getInitials = (name: string) => {
     if (!name) return "U";
     return name
@@ -57,10 +69,29 @@ export function Sidebar({
         </svg>
       ),
     },
+    {
+      name: "Records",
+      label: "Records",
+      icon: (
+        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+        </svg>
+      ),
+    },
+    {
+      name: "Settings",
+      label: "Settings",
+      icon: (
+        <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+    },
   ];
 
   return (
-    <nav className="group h-full bg-[#0F2E1E] dark:bg-[#14120e] border-r border-[#0F2E1E] dark:border-[#14120e] w-20 hover:w-64 transition-all duration-300 flex flex-col justify-between py-6 select-none text-white flex-shrink-0 z-30">
+    <nav className={`group h-full bg-[#0F2E1E] dark:bg-[#14120e] border-r border-[#0F2E1E] dark:border-[#14120e] w-20 hover:w-64 flex flex-col justify-between py-6 select-none text-white flex-shrink-0 z-30 ${mounted ? 'transition-all duration-300' : ''}`}>
       {/* Top Branding Section */}
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3 px-6 h-12 overflow-hidden">
@@ -73,69 +104,69 @@ export function Sidebar({
 
         {/* Nav Menu Links */}
         <div className="flex flex-col gap-1.5 px-3">
-          {navItems.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => setActiveTab(item.name)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group/btn ${
-                activeTab === item.name
-                  ? "bg-[#046241] dark:bg-[#1c2419] text-white dark:text-[#ffb347] font-bold shadow-md shadow-[#046241]/10 dark:shadow-none dark:border-l-[3px] dark:border-[#ffb347] dark:rounded-l-none"
-                  : "text-gray-300 dark:text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 font-semibold"
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                {item.icon}
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-                  {item.label}
-                </span>
-              </div>
-              {/* Gold Circle for active Dashboard item, arrow for rest */}
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                {activeTab === item.name && item.name === "Dashboard" ? (
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ffb347] inline-block" />
-                ) : (
-                  <span className="text-[10px] text-gray-300 group-hover/btn:text-[#046241] dark:group-hover/btn:text-white">▶</span>
-                )}
-              </div>
-            </button>
-          ))}
+          {navItems.map((item) => {
+            let isActive = false;
+            if (item.name === "Companies") isActive = pathname === "/companies";
+            else if (item.name === "Dashboard") isActive = pathname === "/dashboard" || pathname === "/";
+            else if (item.name === "Status") isActive = pathname === "/status";
+            else if (item.name === "Records") isActive = pathname === "/records";
+            else isActive = activeTab === item.name;
+
+            return (
+              <button
+                key={item.name}
+                onClick={() => {
+                  if (item.name === "Companies" && pathname !== "/companies") {
+                    router.push("/companies");
+                  } else if (item.name === "Dashboard" && pathname !== "/dashboard") {
+                    router.push("/dashboard");
+                  } else if (item.name === "Status" && pathname !== "/status") {
+                    router.push("/status");
+                  } else if (item.name === "Records" && pathname !== "/records") {
+                    router.push("/records");
+                  } else {
+                    setActiveTab(item.name);
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group/btn ${
+                  isActive
+                    ? "bg-[#046241] dark:bg-[#1c2419] text-white dark:text-[#ffb347] font-bold shadow-md shadow-[#046241]/10 dark:shadow-none"
+                    : "text-gray-300 dark:text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 font-semibold"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  {item.icon}
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+                    {item.label}
+                  </span>
+                </div>
+                {/* Gold Circle for active item, arrow for rest */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {isActive ? (
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#ffb347] inline-block" />
+                  ) : (
+                    <span className="text-[10px] text-gray-300 group-hover/btn:text-[#046241] dark:group-hover/btn:text-white">▶</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Bottom Profile Controls Drawer */}
       <div className="flex flex-col gap-2 mb-2">
-        {/* Settings Link */}
-        <div className="px-3">
-          <button
-            onClick={() => setActiveTab("Settings")}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group/btn ${
-              activeTab === "Settings"
-                ? "bg-[#046241] dark:bg-[#1c2419] text-white dark:text-[#ffb347] font-bold shadow-md shadow-[#046241]/10 dark:shadow-none dark:border-l-[3px] dark:border-[#ffb347] dark:rounded-l-none"
-                : "text-gray-300 dark:text-white/80 hover:text-white hover:bg-white/10 dark:hover:bg-white/5 font-semibold"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-                Settings
-              </span>
-            </div>
-          </button>
-        </div>
 
         {/* Profile card area */}
         <div className="px-2 group-hover:px-4 flex items-center justify-between gap-2 overflow-hidden h-14 bg-white/5 dark:bg-white/5 mx-3 rounded-2xl border border-white/10 dark:border-white/5 transition-all duration-300">
           <div className="flex items-center gap-3">
             {/* Initials badge */}
             <div className="w-10 h-10 rounded-full bg-[#046241] dark:bg-[#ffb347] flex items-center justify-center font-bold text-white dark:text-[#133020] text-sm flex-shrink-0 shadow-inner">
-              {user ? getInitials(user.name) : "U"}
+              {mounted && user ? getInitials(user.name) : "U"}
             </div>
             <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
               <span className="text-[13px] font-bold truncate max-w-[100px] leading-tight text-white">
-                {user ? user.name : "Loading..."}
+                {mounted && user ? user.name : "Loading..."}
               </span>
               <span className="text-[10px] text-gray-300 dark:text-white/60 leading-none mt-0.5">
                 User
