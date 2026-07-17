@@ -7,6 +7,9 @@ import { SummaryCards } from "../../components/dashboard/SummaryCards";
 import { PortfolioStatus } from "../../components/dashboard/PortfolioStatus";
 import { CountryChart } from "../../components/dashboard/CountryChart";
 
+import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
+import { MonthlyOffersChart } from "../../components/dashboard/MonthlyOffersChart";
+
 export default function DashboardPage() {
   const {
     user,
@@ -19,6 +22,9 @@ export default function DashboardPage() {
     handleLogout,
   } = useDashboardData();
 
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedFile, setSelectedFile] = React.useState("All Files");
+
   const formattedDate = () => {
     return new Date().toLocaleDateString("en-US", {
       weekday: "long",
@@ -30,9 +36,9 @@ export default function DashboardPage() {
 
   return (
     <main className="h-screen w-full flex overflow-hidden bg-[#f5eedb] dark:bg-[#0d0b09] transition-colors duration-300 font-sans">
-      
+
       {/* Left Navigation Bar */}
-      <Sidebar 
+      <Sidebar
         user={user}
         isDarkMode={isDarkMode}
         setIsDarkMode={setIsDarkMode}
@@ -43,7 +49,7 @@ export default function DashboardPage() {
 
       {/* Right Main Content Area */}
       <div className="flex-1 h-full overflow-y-auto p-6 md:p-8 transition-all duration-300 bg-[#f5eedb] dark:bg-[#0d0b09]">
-        
+
         {/* Top Bar Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 mt-2">
           <div>
@@ -55,14 +61,14 @@ export default function DashboardPage() {
               </span>
               Live • Real-Time
             </div>
-            
+
             {/* Main Title */}
             <h1 className="text-[32px] md:text-4xl font-black tracking-tight mb-1">
               <span className="text-transparent bg-clip-text bg-linear-to-r from-[#133020] via-[#046241] to-[#b45309] dark:from-[#4ade80] dark:via-[#2dd4bf] dark:to-[#ffb347]">
                 Dashboard Overview
               </span>
             </h1>
-            
+
             {/* Subtitle / Date */}
             <p className="text-xs md:text-sm font-medium text-[#046241]/70 dark:text-gray-400 flex items-center gap-1.5">
               <svg className="w-4 h-4 text-[#046241]/50 dark:text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -73,14 +79,32 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Dashboard Header: Search and Filter */}
+        <DashboardHeader
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedFile={selectedFile}
+          setSelectedFile={setSelectedFile}
+        />
+
         {/* Layout Grid */}
         <div className="flex flex-col gap-6">
 
-          {/* Card 1: Portfolio Status Distribution */}
-          <PortfolioStatus stats={stats} />
+          {/* Middle Section */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            
+            {/* Left side: Line chart */}
+            <div className="w-full lg:w-[60%] xl:w-[65%] min-h-[350px]">
+              <MonthlyOffersChart selectedFile={selectedFile} />
+            </div>
 
-          {/* Grid 2: 4 Summary Overview Cards */}
-          <SummaryCards stats={stats} />
+            {/* Right side: Summary Cards and Portfolio Status */}
+            <div className="w-full lg:w-[40%] xl:w-[35%] flex flex-col gap-6">
+              <SummaryCards stats={stats} />
+              <PortfolioStatus stats={stats} />
+            </div>
+
+          </div>
 
           {/* Chart: Companies per Country */}
           <CountryChart countriesData={countriesData} />

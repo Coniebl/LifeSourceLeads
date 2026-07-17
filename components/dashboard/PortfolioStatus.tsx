@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface PortfolioStatusProps {
   stats: {
@@ -10,72 +10,98 @@ interface PortfolioStatusProps {
 }
 
 export function PortfolioStatus({ stats }: PortfolioStatusProps) {
+  const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
+
+  const pendingPct = stats.totalCompanies > 0 ? (stats.pendingCount / stats.totalCompanies) * 100 : 0;
+  const acceptedPct = stats.totalCompanies > 0 ? (stats.acceptedCount / stats.totalCompanies) * 100 : 0;
+  const rejectedPct = stats.totalCompanies > 0 ? (stats.rejectedCount / stats.totalCompanies) * 100 : 0;
+
   return (
     <div className="w-full bg-white dark:bg-[#181512] rounded-3xl p-6 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-gray-100 dark:border-white/5 transition-all">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xs font-bold text-gray-400 dark:text-gray-400 uppercase tracking-widest">
-          Leads Status Distribution
-        </h2>
-        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-          {stats.totalCompanies} {stats.totalCompanies === 1 ? "company" : "companies"}
-        </span>
-      </div>
+      <h2 className="text-[13px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-widest mb-4">
+        Offer Status Distribution
+      </h2>
 
       {/* Progress Distribution Bar */}
-      <div className="w-full h-2.5 rounded-full flex overflow-hidden mb-6 bg-gray-100 dark:bg-white/10">
+      <div className="relative w-full h-10 rounded-xl flex overflow-hidden mb-4 bg-gray-100 dark:bg-white/10 group cursor-pointer">
         {stats.totalCompanies > 0 ? (
           <>
-            <div className="bg-[#ffb347] h-full" style={{ width: `${(stats.pendingCount / stats.totalCompanies) * 100}%` }} />
-            <div className="bg-[#046241] h-full" style={{ width: `${(stats.acceptedCount / stats.totalCompanies) * 100}%` }} />
-            <div className="bg-red-500 h-full" style={{ width: `${(stats.rejectedCount / stats.totalCompanies) * 100}%` }} />
+            {/* Pending Segment */}
+            <div
+              className={`bg-[#ffb347] h-full flex items-center justify-center transition-all ${hoveredSegment && hoveredSegment !== 'pending' ? 'opacity-50' : 'opacity-100'}`}
+              style={{ width: `${pendingPct}%` }}
+              onMouseEnter={() => setHoveredSegment('pending')}
+              onMouseLeave={() => setHoveredSegment(null)}
+            >
+              {pendingPct > 5 && <span className="text-xs font-bold text-[#133020]">{Math.round(pendingPct)}%</span>}
+            </div>
+            
+            {/* Accepted Segment */}
+            <div
+              className={`bg-[#046241] h-full flex items-center justify-center transition-all ${hoveredSegment && hoveredSegment !== 'accepted' ? 'opacity-50' : 'opacity-100'}`}
+              style={{ width: `${acceptedPct}%` }}
+              onMouseEnter={() => setHoveredSegment('accepted')}
+              onMouseLeave={() => setHoveredSegment(null)}
+            >
+              {acceptedPct > 5 && <span className="text-xs font-bold text-white">{Math.round(acceptedPct)}%</span>}
+            </div>
+
+            {/* Rejected Segment */}
+            <div
+              className={`bg-[#dc2626] h-full flex items-center justify-center transition-all ${hoveredSegment && hoveredSegment !== 'rejected' ? 'opacity-50' : 'opacity-100'}`}
+              style={{ width: `${rejectedPct}%` }}
+              onMouseEnter={() => setHoveredSegment('rejected')}
+              onMouseLeave={() => setHoveredSegment(null)}
+            >
+              {rejectedPct > 5 && <span className="text-xs font-bold text-white">{Math.round(rejectedPct)}%</span>}
+            </div>
           </>
         ) : (
-          <div className="bg-gray-200 dark:bg-white/5 w-full h-full" />
+          <div className="bg-gray-200 dark:bg-white/5 w-full h-full flex items-center justify-center">
+            <span className="text-xs font-semibold text-gray-400">No data available</span>
+          </div>
+        )}
+
+        {/* Tooltips */}
+        {hoveredSegment === 'pending' && (
+          <div className="absolute top-full left-[20%] mt-2 bg-white dark:bg-[#1A1612] border border-gray-100 dark:border-white/5 shadow-xl rounded-lg p-3 z-10">
+            <p className="text-xs font-bold text-gray-500 mb-1">Pending Offers</p>
+            <p className="text-lg font-black text-[#ffb347]">{stats.pendingCount} <span className="text-xs font-semibold text-gray-400">({pendingPct.toFixed(1)}%)</span></p>
+          </div>
+        )}
+        {hoveredSegment === 'accepted' && (
+          <div className="absolute top-full left-[50%] -translate-x-1/2 mt-2 bg-white dark:bg-[#1A1612] border border-gray-100 dark:border-white/5 shadow-xl rounded-lg p-3 z-10">
+            <p className="text-xs font-bold text-gray-500 mb-1">Accepted Offers</p>
+            <p className="text-lg font-black text-[#046241]">{stats.acceptedCount} <span className="text-xs font-semibold text-gray-400">({acceptedPct.toFixed(1)}%)</span></p>
+          </div>
+        )}
+        {hoveredSegment === 'rejected' && (
+          <div className="absolute top-full right-[10%] mt-2 bg-white dark:bg-[#1A1612] border border-gray-100 dark:border-white/5 shadow-xl rounded-lg p-3 z-10">
+            <p className="text-xs font-bold text-gray-500 mb-1">Rejected Offers</p>
+            <p className="text-lg font-black text-[#dc2626]">{stats.rejectedCount} <span className="text-xs font-semibold text-gray-400">({rejectedPct.toFixed(1)}%)</span></p>
+          </div>
         )}
       </div>
 
-      {/* Status Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Pending Card */}
-        <div className="bg-[#ffb347]/5 dark:bg-[#ffb347]/10 rounded-2xl p-4 border border-[#ffb347]/10 flex flex-col">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ffb347]" />
-            <span className="text-[13px] font-bold text-gray-500 dark:text-gray-400">Pending</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-[#ffb347]">
-              {stats.totalCompanies > 0 ? `${Math.round((stats.pendingCount / stats.totalCompanies) * 100)}%` : "0%"}
-            </span>
-            <span className="text-sm font-semibold text-gray-400">{stats.pendingCount}</span>
-          </div>
+      {/* Legend below the bar */}
+      <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+             onMouseEnter={() => setHoveredSegment('pending')}
+             onMouseLeave={() => setHoveredSegment(null)}>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#ffb347]" />
+          <span>Pending <span className="text-[#133020] dark:text-white ml-0.5">{pendingPct.toFixed(1)}%</span></span>
         </div>
-
-        {/* Accepted Card */}
-        <div className="bg-[#046241]/5 dark:bg-[#046241]/10 rounded-2xl p-4 border border-[#046241]/10 flex flex-col">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#046241]" />
-            <span className="text-[13px] font-bold text-gray-500 dark:text-gray-400">Accepted</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-[#046241]">
-              {stats.totalCompanies > 0 ? `${Math.round((stats.acceptedCount / stats.totalCompanies) * 100)}%` : "0%"}
-            </span>
-            <span className="text-sm font-semibold text-gray-400">{stats.acceptedCount}</span>
-          </div>
+        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+             onMouseEnter={() => setHoveredSegment('accepted')}
+             onMouseLeave={() => setHoveredSegment(null)}>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#046241]" />
+          <span>Accepted <span className="text-[#133020] dark:text-white ml-0.5">{acceptedPct.toFixed(1)}%</span></span>
         </div>
-
-        {/* Rejected Card */}
-        <div className="bg-red-500/5 dark:bg-red-500/10 rounded-2xl p-4 border border-red-500/10 flex flex-col">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <span className="text-[13px] font-bold text-gray-500 dark:text-gray-400">Rejected</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-red-500">
-              {stats.totalCompanies > 0 ? `${Math.round((stats.rejectedCount / stats.totalCompanies) * 100)}%` : "0%"}
-            </span>
-            <span className="text-sm font-semibold text-gray-400">{stats.rejectedCount}</span>
-          </div>
+        <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+             onMouseEnter={() => setHoveredSegment('rejected')}
+             onMouseLeave={() => setHoveredSegment(null)}>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#dc2626]" />
+          <span>Rejected <span className="text-[#133020] dark:text-white ml-0.5">{rejectedPct.toFixed(1)}%</span></span>
         </div>
       </div>
     </div>

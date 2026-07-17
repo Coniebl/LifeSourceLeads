@@ -11,7 +11,7 @@ interface SummaryCardsProps {
 
 export function SummaryCards({ stats }: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-4 h-full">
       {/* Total Leads Card */}
       <div className="bg-white dark:bg-[#181512] rounded-3xl p-5 shadow-[0_4px_25px_rgba(0,0,0,0.02)] border border-gray-100 dark:border-white/5 flex flex-col justify-between">
         <div className="flex items-center justify-between mb-4">

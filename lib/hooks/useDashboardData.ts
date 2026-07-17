@@ -27,7 +27,25 @@ export function useDashboardData() {
   const [user] = useState<DashboardUser | null>(getStoredUser);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState("Dashboard");
-  
+
+  useEffect(() => {
+    const saved = localStorage.getItem("lifelead-theme");
+    if (saved === "dark") {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem("lifelead-theme", "dark");
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem("lifelead-theme", "light");
+    }
+  }, [isDarkMode]);
+
   const [stats, setStats] = useState({
     totalCompanies: 0,
     acceptedCount: 0,
@@ -112,7 +130,7 @@ export function useDashboardData() {
           if (!countryMap[country]) {
             countryMap[country] = { count: 0, breakdown: {} };
           }
-            
+
           countryMap[country].count++;
           company.industries.forEach((industry) => {
             countryMap[country].breakdown[industry] = (countryMap[country].breakdown[industry] || 0) + 1;
