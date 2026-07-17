@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useDashboardData } from "../../lib/hooks/useDashboardData";
 import { Sidebar } from "../../components/dashboard/Sidebar";
 import { CompaniesView } from "../../components/companies/CompaniesView";
@@ -21,7 +21,7 @@ export default function CompaniesPage() {
   React.useEffect(() => {
     const fetchCompanies = async () => {
       const { supabase } = await import("../../lib/supabase/client");
-      const { data, error } = await supabase.from('records').select('*');
+      const { data, error } = await supabase.from('company_contacts').select('*');
       if (data && !error) {
         const companyMap = new Map<string, CompanyData>();
         data.forEach((r: any) => {
@@ -29,24 +29,33 @@ export default function CompaniesPage() {
           if (!name) return;
           
           if (!companyMap.has(name)) {
+            let inds: string[] = [];
+            if (r.industries) {
+               inds = r.industries.split(',').map((s: string) => s.trim());
+            }
+
             companyMap.set(name, {
               name,
               country: r.country || "Unknown",
-              industries: r.industry ? [r.industry] : [],
-              leads: 0,
+              industries: inds,
+              leads: 1,
               contactPerson: r.contact_person,
-              contactNumber: r.phone,
-              linkedin: r.linkedin,
-              website: r.website,
+              contactNumber: r.contact_mobile || r.contact_telephone,
+              linkedin: r.company_linkedin,
+              website: r.company_website,
               source: r.source_file,
               status: r.status || "Pending",
-              updatedAt: new Date(r.date_added).toLocaleDateString()
+              updatedAt: new Date().toLocaleDateString()
             });
-          }
-          const c = companyMap.get(name)!;
-          c.leads += 1;
-          if (r.industry && !c.industries.includes(r.industry)) {
-            c.industries.push(r.industry);
+          } else {
+             const c = companyMap.get(name)!;
+             c.leads += 1;
+             if (r.industries) {
+                const inds = r.industries.split(',').map((s: string) => s.trim());
+                inds.forEach((ind: string) => {
+                   if (!c.industries.includes(ind)) c.industries.push(ind);
+                });
+             }
           }
         });
         setCompanies(Array.from(companyMap.values()));
@@ -74,7 +83,9 @@ export default function CompaniesPage() {
 
       {/* Right Main Content Area */}
       <div className="flex-1 h-full overflow-y-auto p-6 md:p-8 transition-all duration-300 bg-[#f5eedb] dark:bg-[#0d0b09]">
-        <CompaniesView companies={companies} setCompanies={setCompanies} />
+        <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading companies...</div>}>
+          <CompaniesView companies={companies} setCompanies={setCompanies} />
+        </Suspense>
       </div>
 
     </main>

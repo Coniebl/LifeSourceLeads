@@ -15,11 +15,14 @@ export default function DashboardPage() {
     user,
     stats,
     countriesData,
+    industriesData,
     isDarkMode,
     setIsDarkMode,
     activeTab,
     setActiveTab,
     handleLogout,
+    availableFiles,
+    allCompanyNames
   } = useDashboardData();
 
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -80,11 +83,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Dashboard Header: Search and Filter */}
-        <DashboardHeader
-          searchQuery={searchQuery}
+        <DashboardHeader 
+          searchQuery={searchQuery} 
           setSearchQuery={setSearchQuery}
           selectedFile={selectedFile}
           setSelectedFile={setSelectedFile}
+          availableFiles={availableFiles}
+          allCompanyNames={allCompanyNames}
         />
 
         {/* Layout Grid */}
@@ -93,9 +98,13 @@ export default function DashboardPage() {
           {/* Middle Section */}
           <div className="flex flex-col lg:flex-row gap-6">
             
-            {/* Left side: Line chart */}
-            <div className="w-full lg:w-[60%] xl:w-[65%] min-h-[350px]">
-              <MonthlyOffersChart selectedFile={selectedFile} hasData={stats.totalLeads > 0} />
+            {/* Monthly Offers Chart */}
+            <div className="flex-[2]">
+              <MonthlyOffersChart 
+                selectedFile={selectedFile} 
+                hasData={stats.acceptedOfferCount > 0} 
+                monthlyData={stats.monthlyAccepted}
+              />
             </div>
 
             {/* Right side: Summary Cards and Portfolio Status */}

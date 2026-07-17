@@ -28,20 +28,21 @@ export default function RecordsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecords = async () => {
-    const { data, error } = await supabase.from('records').select('*').order('date_added', { ascending: false });
+    // Fetch from company_contacts instead of records
+    const { data, error } = await supabase.from('company_contacts').select('*').order('id', { ascending: false });
     if (data && !error) {
       const formatted = data.map((r: any) => ({
-        id: r.id,
+        id: r.id.toString(),
         companyName: r.company_name,
         country: r.country,
-        industry: r.industry,
+        industry: r.industries, // Using industries from company_contacts
         contactPerson: r.contact_person,
-        email: r.email,
-        phone: r.phone,
+        email: r.contact_email,
+        phone: r.contact_mobile || r.contact_telephone,
         status: r.status || "Pending",
-        dateAdded: new Date(r.date_added).toISOString().split('T')[0],
-        website: r.website || "",
-        linkedin: r.linkedin || "",
+        dateAdded: new Date().toISOString().split('T')[0], // company_contacts doesn't have date_added, using current date or fallback
+        website: r.company_website || "",
+        linkedin: r.company_linkedin || "",
         sourceFile: r.source_file,
       }));
       setRecords(formatted);
@@ -65,35 +66,69 @@ export default function RecordsPage() {
       try {
         const bstr = evt.target?.result;
         const wb = xlsx.read(bstr, { type: "binary" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = xlsx.utils.sheet_to_json(ws);
+        
+        const wsIndustry = wb.Sheets["Industry"];
+        const wsCompanyDetails = wb.Sheets["Company Details"];
+        
+        let industryRows: any[] = [];
+        if (wsIndustry) {
+          const industryData = xlsx.utils.sheet_to_json(wsIndustry);
+          industryRows = industryData.map((row: any) => ({
+            company_name: row["Company Name"] || "",
+            original_industry_input: row["Original Industry Input"] || "",
+            general_industry_type: row["General Industry Type"] || "",
+            subcategory: row["Subcategory"] || ""
+          })).filter((row: any) => row.company_name);
+        }
 
-        const dbRows = data.map((row: any) => ({
-          company_name: row["Company Name"] || row["company"] || "Unknown Company",
-          country: row["Country"] || row["country"] || "",
-          industry: row["Industry"] || row["industry"] || "",
-          contact_person: row["Contact Person"] || row["contact_person"] || row["Name"] || "",
-          email: row["Email"] || row["email"] || "",
-          phone: String(row["Phone"] || row["phone"] || ""),
-          status: "Pending",
-          website: row["Website"] || row["website"] || "",
-          linkedin: row["LinkedIn"] || row["linkedin"] || "",
-          source_file: file.name
-        }));
-
-        if (dbRows.length > 0) {
-          const { error } = await supabase.from('records').insert(dbRows);
-          if (error) {
-            console.error("Error inserting records:", error);
-            alert("Failed to import records.");
-          } else {
-            fetchRecords();
+        let contactRows: any[] = [];
+        if (wsCompanyDetails) {
+          const contactData = xlsx.utils.sheet_to_json(wsCompanyDetails);
+          contactRows = contactData.map((row: any) => ({
+            company_name: row["Company Name"] || "",
+            contact_person: row["Contact Person"] || "",
+            designation: row["Designation"] || "",
+            contact_mobile: String(row["Contact (Mobile)"] || ""),
+            contact_telephone: String(row["Contact (Telephone)"] || ""),
+            contact_fax: String(row["Contact (Fax)"] || ""),
+            contact_direct_line: String(row["Contact (Direct Line)"] || ""),
+            contact_email: row["Contact Email"] || "",
+            office_location: row["Office location"] || "",
+            country: row["Country"] || "",
+            company_website: row["Company Website"] || "",
+            company_linkedin: row["Company LinkedIn"] || "",
+            industries: row["Industries"] || "",
+            status: "Pending",
+          })).filter((row: any) => row.company_name);
+        }
+        
+        if (contactRows.length > 0) {
+          const { error: contactError } = await supabase.from('company_contacts').insert(contactRows);
+          if (contactError) {
+            console.error("Error inserting contacts:", contactError.message, contactError.details, contactError.hint);
+            alert(`Failed to import company details: ${contactError.message}`);
+            return;
           }
+        }
+
+        if (industryRows.length > 0) {
+          const { error: indError } = await supabase.from('company_industries').upsert(industryRows);
+          if (indError) {
+            console.error("Error inserting industries:", indError.message, indError.details, indError.hint);
+            alert(`Failed to import industries: ${indError.message}`);
+            return;
+          }
+        }
+
+        // If we reached here, both (or whichever were uploaded) succeeded
+        if (contactRows.length > 0 || industryRows.length > 0) {
+          fetchRecords();
+        } else {
+          alert("No valid data found in 'Industry' or 'Company Details' sheets.");
         }
       } catch (err) {
         console.error("Failed to parse Excel:", err);
-        alert("Invalid Excel file.");
+        alert("Invalid Excel file. Ensure it has 'Industry' and 'Company Details' sheets.");
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -149,7 +184,10 @@ export default function RecordsPage() {
   };
 
   const handleDeleteCompletedFiles = async (filesToDelete: string[]) => {
-    const { error } = await supabase.from('records').delete().in('source_file', filesToDelete);
+    // Delete from both new tables
+    await supabase.from('company_industries').delete().in('company_name', records.filter(r => filesToDelete.includes(r.sourceFile)).map(r => r.companyName));
+    const { error } = await supabase.from('company_contacts').delete().in('source_file', filesToDelete);
+    
     if (!error) {
       setCompletedFiles(completedFiles.filter(f => !filesToDelete.includes(f)));
       fetchRecords();

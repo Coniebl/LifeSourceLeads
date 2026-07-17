@@ -1,10 +1,14 @@
 import React from "react";
 
+import { useRouter } from "next/navigation";
+
 interface DashboardHeaderProps {
   searchQuery: string;
   setSearchQuery: (val: string) => void;
   selectedFile: string;
   setSelectedFile: (val: string) => void;
+  availableFiles: string[];
+  allCompanyNames: string[];
 }
 
 export function DashboardHeader({
@@ -12,12 +16,43 @@ export function DashboardHeader({
   setSearchQuery,
   selectedFile,
   setSelectedFile,
+  availableFiles,
+  allCompanyNames,
 }: DashboardHeaderProps) {
+  const router = useRouter();
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown if clicked outside
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      setShowSuggestions(false);
+      router.push(`/companies?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const filteredSuggestions = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return allCompanyNames
+      .filter((name) => name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 8); // show max 8 suggestions
+  }, [searchQuery, allCompanyNames]);
+
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full mb-6">
       {/* Search Bar */}
-      <div className="relative w-full flex-1">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+      <div className="relative w-full flex-1" ref={wrapperRef}>
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
           <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -25,10 +60,37 @@ export function DashboardHeader({
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search companies, countries, industries..."
-          className="w-full pl-11 pr-4 py-3 bg-white dark:bg-[#181512] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#046241] dark:focus:ring-[#ffb347] transition-all placeholder-gray-400"
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowSuggestions(true);
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          onKeyDown={handleKeyDown}
+          placeholder="Search companies globally..."
+          className="relative w-full pl-11 pr-4 py-3 bg-white dark:bg-[#181512] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#046241] dark:focus:ring-[#ffb347] transition-all placeholder-gray-400 z-10"
         />
+        
+        {/* Dropdown Suggestions */}
+        {showSuggestions && filteredSuggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1A1612] border border-gray-100 dark:border-white/5 shadow-xl rounded-xl z-50 overflow-hidden flex flex-col">
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-4 py-2 border-b border-gray-100 dark:border-white/5">
+              Suggested Companies
+            </span>
+            {filteredSuggestions.map((name) => (
+              <button
+                key={name}
+                onClick={() => {
+                  setSearchQuery(name);
+                  setShowSuggestions(false);
+                  router.push(`/companies?search=${encodeURIComponent(name)}`);
+                }}
+                className="w-full text-left px-4 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-[#046241]/10 dark:hover:bg-white/5 transition-colors"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Dropdown Filter */}
@@ -44,9 +106,9 @@ export function DashboardHeader({
           className="w-full pl-10 pr-8 py-3 bg-white dark:bg-[#181512] border border-gray-200 dark:border-white/10 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-200 appearance-none focus:outline-none focus:ring-2 focus:ring-[#046241] dark:focus:ring-[#ffb347] transition-all cursor-pointer"
         >
           <option value="All Files">All Files</option>
-          <option value="Excel 1">Excel 1</option>
-          <option value="Excel 2">Excel 2</option>
-          <option value="Excel 3">Excel 3</option>
+          {availableFiles.map(file => (
+            <option key={file} value={file}>{file}</option>
+          ))}
         </select>
         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
           <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -9,7 +9,14 @@ export type CountryData = {
   percentage: string;
   color: string;
   hex: string;
-  breakdown: Record<string, number>;
+  companies: string[];
+};
+
+export type IndustryData = {
+  count: number;
+  percentage: string;
+  color: string;
+  hex: string;
 };
 
 export function getStoredUser(): DashboardUser | null {
@@ -49,12 +56,16 @@ export function useDashboardData() {
     pendingCount: 0,
     rejectedCount: 0,
     totalLeads: 0,
-    totalCountries: 0,
     totalIndustries: 0,
     acceptedOfferCount: 0,
+    monthlyAccepted: Array(12).fill(0),
   });
 
+  const [availableFiles, setAvailableFiles] = useState<string[]>([]);
+  const [allCompanyNames, setAllCompanyNames] = useState<string[]>([]);
+
   const [countriesData, setCountriesData] = useState<Record<string, CountryData>>({});
+  const [industriesData, setIndustriesData] = useState<Record<string, IndustryData>>({});
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDarkMode);
@@ -68,15 +79,25 @@ export function useDashboardData() {
 
     const fetchSupabaseData = async () => {
       try {
-        const { data, error } = await supabase.from("records").select("company_name, country, industry, status");
+        const { data: contactsData, error: contactsError } = await supabase.from("company_contacts").select("*");
+        const { data: indData, error: indError } = await supabase.from("company_industries").select("*");
 
-        if (error) {
-          console.warn("Supabase error loading data:", error.message);
+        if (contactsError) {
+          console.warn("Supabase error loading contacts data:", contactsError.message);
           return;
         }
 
-        const records = data ?? [];
-        const companies = new Map<string, { country: string; industries: Set<string>; leads: number }>();
+        const records = contactsData ?? [];
+        const industryRecords = indData ?? [];
+        
+        const companies = new Map<string, { country: string; industries: Set<string>; leads: number; status: string }>();
+        const companyToGenIndustry = new Map<string, string>();
+        
+        industryRecords.forEach(ir => {
+          if (ir.company_name && ir.general_industry_type) {
+            companyToGenIndustry.set(ir.company_name.trim(), ir.general_industry_type.trim());
+          }
+        });
         
         let pendingCount = 0;
         let acceptedCount = 0;
@@ -90,20 +111,24 @@ export function useDashboardData() {
             companies.set(name, { 
               country: record.country?.trim() || "Unknown", 
               industries: new Set<string>(), 
-              leads: 0 
+              leads: 0,
+              status: record.status,
+              created_at: record.created_at
             });
           }
 
           const company = companies.get(name)!;
           company.leads += 1;
 
-          if (record.industry?.trim()) {
-            company.industries.add(record.industry.trim());
+          if (record.industries?.trim()) {
+            record.industries.split(',').forEach((ind: string) => company.industries.add(ind.trim()));
           }
+        });
 
-          if (record.status === "Pending") pendingCount++;
-          else if (record.status === "Accepted") acceptedCount++;
-          else if (record.status === "Rejected") rejectedCount++;
+        companies.forEach((company) => {
+          if (company.status === "Pending") pendingCount++;
+          else if (company.status === "Accepted") acceptedCount++;
+          else if (company.status === "Rejected") rejectedCount++;
         });
 
         if (companies.size === 0) return;
@@ -112,22 +137,42 @@ export function useDashboardData() {
         const leadsSum = records.length;
         const uniqueCountries = new Set<string>();
         const uniqueIndustries = new Set<string>();
+        const uniqueSources = new Set<string>();
 
-        const countryMap: Record<string, { count: number; breakdown: Record<string, number> }> = {};
+        const countryMap: Record<string, { count: number; companies: string[] }> = {};
+        const industryCountMap: Record<string, number> = {};
+        const monthlyAccepted = Array(12).fill(0);
 
-        companies.forEach((company) => {
+        records.forEach(r => {
+          if (r.source_file && r.source_file.trim() !== "") {
+            uniqueSources.add(r.source_file.trim());
+          }
+        });
+        setAvailableFiles(Array.from(uniqueSources).sort());
+        setAllCompanyNames(Array.from(companies.keys()));
+
+        companies.forEach((company, name) => {
           const country = company.country;
           uniqueCountries.add(country);
           company.industries.forEach((industry) => uniqueIndustries.add(industry));
 
           if (!countryMap[country]) {
-            countryMap[country] = { count: 0, breakdown: {} };
+            countryMap[country] = { count: 0, companies: [] };
           }
-
           countryMap[country].count++;
-          company.industries.forEach((industry) => {
-            countryMap[country].breakdown[industry] = (countryMap[country].breakdown[industry] || 0) + 1;
-          });
+          countryMap[country].companies.push(name);
+          
+          const genIndustry = companyToGenIndustry.get(name) || "Other";
+          industryCountMap[genIndustry] = (industryCountMap[genIndustry] || 0) + 1;
+          
+          // Add to monthly chart if created_at exists AND it's accepted
+          if (company.status === "Accepted" && company.created_at) {
+            const date = new Date(company.created_at);
+            const month = date.getMonth(); 
+            if (!isNaN(month)) {
+              monthlyAccepted[month]++;
+            }
+          }
         });
 
         setStats({
@@ -138,7 +183,8 @@ export function useDashboardData() {
           totalLeads: leadsSum,
           totalCountries: uniqueCountries.size,
           totalIndustries: uniqueIndustries.size,
-          acceptedOfferCount: acceptedCount, // Using accepted records as accepted offer count
+          acceptedOfferCount: acceptedCount,
+          monthlyAccepted,
         });
 
         const colors = [
@@ -156,17 +202,36 @@ export function useDashboardData() {
             percentage: `${Math.round((cData.count / total) * 100)}%`,
             color: colorObj.bg,
             hex: colorObj.hex,
-            breakdown: cData.breakdown
+            companies: cData.companies
           };
         });
 
         setCountriesData(formattedCountries);
+
+        const formattedIndustries: Record<string, IndustryData> = {};
+        Object.entries(industryCountMap).sort((a,b)=>b[1]-a[1]).forEach(([iName, count], idx) => {
+          const colorObj = colors[idx % colors.length];
+          formattedIndustries[iName] = {
+            count: count,
+            percentage: `${Math.round((count / total) * 100)}%`,
+            color: colorObj.bg,
+            hex: colorObj.hex,
+          };
+        });
+        setIndustriesData(formattedIndustries);
       } catch (err) {
         console.error("Connection failed: defaulting to zero-value dashboard.", err);
       }
     };
 
     fetchSupabaseData();
+
+    const handleUpdate = () => {
+      fetchSupabaseData();
+    };
+
+    window.addEventListener('companyStatusUpdated', handleUpdate);
+    return () => window.removeEventListener('companyStatusUpdated', handleUpdate);
   }, [router, user]);
 
   const handleLogout = async () => {
@@ -179,10 +244,13 @@ export function useDashboardData() {
     user,
     stats,
     countriesData,
+    industriesData,
     isDarkMode,
     setIsDarkMode,
     activeTab,
     setActiveTab,
     handleLogout,
+    availableFiles,
+    allCompanyNames
   };
 }

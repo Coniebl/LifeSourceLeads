@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { CompanyCard, type CompanyData } from "./CompanyCard";
 import { SelectDropdown } from "../ui/SelectDropdown";
 import { useCompanyStatus } from "../../lib/hooks/useCompanyStatus";
 import * as xlsx from "xlsx";
 
 export function CompaniesView({ companies, setCompanies }: { companies: CompanyData[], setCompanies: React.Dispatch<React.SetStateAction<CompanyData[]>> }) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [selectedIndustry, setSelectedIndustry] = useState("All Industries");
   const [selectedCountry, setSelectedCountry] = useState("All Countries");
   const [selectedSource, setSelectedSource] = useState("All Records");

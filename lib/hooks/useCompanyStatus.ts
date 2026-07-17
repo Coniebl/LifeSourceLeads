@@ -11,7 +11,7 @@ export function useCompanyStatus(companyName: string) {
 
     const fetchStatus = async () => {
       const { data, error } = await supabase
-        .from('records')
+        .from('company_contacts')
         .select('status')
         .eq('company_name', companyName)
         .limit(1);
@@ -31,15 +31,20 @@ export function useCompanyStatus(companyName: string) {
   const setStatus = async (newStatus: CompanyStatus) => {
     setStatusState(newStatus);
     
-    const { error } = await supabase
-      .from('records')
+    const { data, error } = await supabase
+      .from('company_contacts')
       .update({ status: newStatus })
-      .eq('company_name', companyName);
+      .eq('company_name', companyName)
+      .select();
 
-    if (!error) {
-      window.dispatchEvent(new Event('companyStatusUpdated'));
-    } else {
+    if (error) {
       console.error("Supabase update error:", error.message);
+      alert("Failed to update status. Error: " + error.message);
+    } else if (!data || data.length === 0) {
+      console.error("No rows updated. This is usually caused by missing RLS UPDATE policies!");
+      alert("Status could not be updated. Your database Row Level Security (RLS) is blocking the update. Please ensure you created the UPDATE policy for company_contacts.");
+    } else {
+      window.dispatchEvent(new Event('companyStatusUpdated'));
     }
   };
 
@@ -52,7 +57,7 @@ export function useAllCompanyStatuses() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const fetchStatuses = async () => {
-      const { data, error } = await supabase.from('records').select('company_name, status');
+      const { data, error } = await supabase.from('company_contacts').select('company_name, status');
       if (!error && data) {
         const overrides: Record<string, CompanyStatus> = {};
         data.forEach(row => {

@@ -3,19 +3,15 @@ import React from "react";
 interface MonthlyOffersChartProps {
   selectedFile: string;
   hasData?: boolean;
+  monthlyData: number[];
 }
 
-export function MonthlyOffersChart({ selectedFile, hasData = true }: MonthlyOffersChartProps) {
+export function MonthlyOffersChart({ selectedFile, hasData = true, monthlyData }: MonthlyOffersChartProps) {
   // Mock data for the 12 months (0-100 scale for simplicity)
   // Dynamic behavior based on selectedFile (just slightly varying points for demonstration)
   const getPoints = () => {
-    if (!hasData) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    switch (selectedFile) {
-      case "Excel 1": return [20, 30, 25, 40, 35, 50, 45, 60, 55, 65, 70, 45];
-      case "Excel 2": return [15, 20, 35, 30, 50, 40, 60, 50, 70, 60, 80, 55];
-      case "Excel 3": return [25, 25, 40, 45, 30, 55, 50, 45, 65, 75, 60, 50];
-      default: return [18, 24, 31, 27, 42, 38, 55, 47, 62, 58, 72, 49]; // "All Files" base data matching image approx
-    }
+    if (!hasData || !monthlyData || monthlyData.length !== 12) return Array(12).fill(0);
+    return monthlyData;
   };
 
   const data = getPoints();
@@ -30,7 +26,9 @@ export function MonthlyOffersChart({ selectedFile, hasData = true }: MonthlyOffe
   const innerWidth = svgWidth - paddingX * 2;
   const innerHeight = svgHeight - paddingY * 2;
   
-  const maxVal = 80; // Hardcoded max Y scale for consistency
+  const maxDataVal = Math.max(...data, 10);
+  // Round up to nearest 10, minimum 10
+  const maxVal = Math.ceil(maxDataVal / 10) * 10;
 
   // Helper to calculate X and Y coordinates
   const getX = (index: number) => paddingX + (index * (innerWidth / (data.length - 1)));
@@ -67,7 +65,7 @@ export function MonthlyOffersChart({ selectedFile, hasData = true }: MonthlyOffe
       <div className="flex-1 relative w-full h-full min-h-[250px]">
         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none" className="w-full h-full overflow-visible">
           {/* Grid lines */}
-          {[0, 20, 40, 60, 80].map((tick) => (
+          {[0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal].map((tick) => (
             <g key={tick}>
               <line
                 x1={paddingX}
@@ -85,7 +83,7 @@ export function MonthlyOffersChart({ selectedFile, hasData = true }: MonthlyOffe
                 textAnchor="end"
                 className="text-[10px] font-bold fill-gray-400"
               >
-                {tick}
+                {Math.round(tick)}
               </text>
             </g>
           ))}
