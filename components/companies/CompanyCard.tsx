@@ -6,11 +6,14 @@ export type CompanyData = {
   industries: string[];
   leads: number;
   contactPerson?: string;
+  designation?: string;
   contactNumber?: string;
+  email?: string;
   linkedin?: string;
   website?: string;
   source?: string;
-  status?: "Pending" | "Accepted" | "Rejected";
+  category?: "Companies" | "Filipino Community Organizations";
+  status?: "Pending" | "Processing" | "Accepted" | "Rejected";
   updatedAt?: string;
 };
 
@@ -44,6 +47,9 @@ export function CompanyCard({ company, onClick }: { company: CompanyData; onClic
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg ${bgColor} shadow-md`}>
             {initials}
           </div>
+          <span className="px-2.5 py-1 rounded-full bg-gray-100 dark:bg-white/10 text-[10px] font-black text-gray-400 uppercase tracking-widest border border-gray-200/50 dark:border-white/5">
+            {!company.status || company.status === "Pending" ? "Not Active" : company.status}
+          </span>
         </div>
 
         <h3 className="font-bold text-[#133020] dark:text-white text-lg mb-2 truncate group-hover:text-clip group-hover:whitespace-normal transition-all" title={company.name}>

@@ -56,6 +56,7 @@ export function useDashboardData() {
     pendingCount: 0,
     rejectedCount: 0,
     totalLeads: 0,
+    totalCountries: 0,
     totalIndustries: 0,
     acceptedOfferCount: 0,
     monthlyAccepted: Array(12).fill(0),
@@ -90,7 +91,7 @@ export function useDashboardData() {
         const records = contactsData ?? [];
         const industryRecords = indData ?? [];
         
-        const companies = new Map<string, { country: string; industries: Set<string>; leads: number; status: string }>();
+        const companies = new Map<string, { country: string; industries: Set<string>; leads: number; status: string; created_at?: string }>();
         const companyToGenIndustry = new Map<string, string>();
         
         industryRecords.forEach(ir => {
